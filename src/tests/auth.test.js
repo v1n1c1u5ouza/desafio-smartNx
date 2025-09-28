@@ -1,28 +1,25 @@
-jest.mock('../models/index.js', () => {
-  return {
-    User: {
-      findOne: jest.fn(),
-      create: jest.fn(),
-    },
-  };
-});
+jest.mock('../models/user.js', () => ({
+  __esModule: true,
+  default: {
+    findOne: jest.fn(),
+    create: jest.fn(),
+  },
+}));
 
 jest.mock('jsonwebtoken', () => ({
   sign: jest.fn(() => 'dummy.jwt.token'),
 }));
 
 import { register, login } from '../controllers/authController.js';
-import { User } from '../models/index.js';
+import User from '../models/user.js';
 import { sign as jwtSign } from 'jsonwebtoken';
 
-function mockReq(body = {}) {
-  return { body };
-}
+function mockReq(body = {}) { return { body }; }
 function mockRes() {
   const res = {};
-  res.status = jest.fn().mockReturnValue(res);
-  res.json   = jest.fn().mockReturnValue(res);
-  res.send   = jest.fn().mockReturnValue(res);
+  res.status = jest.fn(() => res);
+  res.json   = jest.fn(() => res);
+  res.send   = jest.fn(() => res);
   return res;
 }
 
@@ -38,14 +35,18 @@ describe('authController (register/login)', () => {
     const res = mockRes();
 
     User.findOne.mockResolvedValue(null);
-    User.create.mockResolvedValue({ id: 1, name: 'Vinicius', username: 'vini' });
+    User.create.mockResolvedValue({ _id: '507f1f77bcf86cd799439011', name: 'Vinicius', username: 'vini' });
 
     await register(req, res);
 
-    expect(User.findOne).toHaveBeenCalledWith({ where: { username: 'vini' } });
+    expect(User.findOne).toHaveBeenCalledWith({ username: 'vini' });
     expect(User.create).toHaveBeenCalledWith({ name: 'Vinicius', username: 'vini', password: '123456' });
     expect(res.status).toHaveBeenCalledWith(201);
-    expect(res.json).toHaveBeenCalledWith({ id: 1, name: 'Vinicius', username: 'vini' });
+    expect(res.json).toHaveBeenCalledWith({
+      id: '507f1f77bcf86cd799439011',
+      name: 'Vinicius',
+      username: 'vini',
+    });
   });
 
   test('POST /login -> 200 (retorna token e user)', async () => {
@@ -53,7 +54,7 @@ describe('authController (register/login)', () => {
     const res = mockRes();
 
     const fakeUser = {
-      id: 1,
+      _id: '507f1f77bcf86cd799439011',
       name: 'Vinicius',
       username: 'vini',
       checkPassword: jest.fn().mockResolvedValue(true),
@@ -62,12 +63,12 @@ describe('authController (register/login)', () => {
 
     await login(req, res);
 
-    expect(User.findOne).toHaveBeenCalledWith({ where: { username: 'vini' } });
+    expect(User.findOne).toHaveBeenCalledWith({ username: 'vini' });
     expect(fakeUser.checkPassword).toHaveBeenCalledWith('123456');
     expect(jwtSign).toHaveBeenCalled();
     expect(res.json).toHaveBeenCalledWith({
       token: 'dummy.jwt.token',
-      user: { id: 1, name: 'Vinicius', username: 'vini' },
+      user: { id: '507f1f77bcf86cd799439011', name: 'Vinicius', username: 'vini' },
     });
   });
 
@@ -76,7 +77,9 @@ describe('authController (register/login)', () => {
     const res = mockRes();
 
     const fakeUser = {
-      id: 1, name: 'Vinicius', username: 'vini',
+      _id: '507f1f77bcf86cd799439011',
+      name: 'Vinicius',
+      username: 'vini',
       checkPassword: jest.fn().mockResolvedValue(false),
     };
     User.findOne.mockResolvedValue(fakeUser);
@@ -91,7 +94,7 @@ describe('authController (register/login)', () => {
     const req = mockReq({ name: 'Vinicius', username: 'vini', password: '123456' });
     const res = mockRes();
 
-    User.findOne.mockResolvedValue({ id: 99, username: 'vini' });
+    User.findOne.mockResolvedValue({ _id: 'X', username: 'vini' });
 
     await register(req, res);
 
@@ -100,15 +103,13 @@ describe('authController (register/login)', () => {
   });
 
   test('POST /login faltando campos -> 400', async () => {
-    let req = mockReq({ username: 'vini' });
     let res = mockRes();
-    await login(req, res);
+    await login(mockReq({ username: 'vini' }), res);
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({ error: 'username e password são obrigatórios' });
 
-    req = mockReq({ password: '123456' });
     res = mockRes();
-    await login(req, res);
+    await login(mockReq({ password: '123456' }), res);
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({ error: 'username e password são obrigatórios' });
   });
