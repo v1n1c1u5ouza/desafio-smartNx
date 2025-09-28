@@ -1,35 +1,25 @@
-import { DataTypes } from 'sequelize';
-import bcrypt from 'bcrypt';
+import mongoose from 'mongoose';
+import bcrypt from 'bcrypt'
 
-export default (sequelize) => {
-  const User = sequelize.define(
-    'User',
-    {
-      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-      name: { type: DataTypes.STRING, allowNull: false },
-      username: { type: DataTypes.STRING, allowNull: false, unique: true },
-      password: { type: DataTypes.STRING, allowNull: false },
-    },
-    {
-      tableName: 'users',
-      hooks: {
-        async beforeCreate(user) {
-          const salt = await bcrypt.genSalt(10);
-          user.password = await bcrypt.hash(user.password, salt);
-        },
-        async beforeUpdate(user) {
-          if (user.changed('password')) {
-            const salt = await bcrypt.genSalt(10);
-            user.password = await bcrypt.hash(user.password, salt);
-          }
-        },
-      },
-    }
-  );
+const UserSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true},
+    username: { type: String, required: true, unique: true, index: true },
+    password: { type: String, required: true },
+  },
+  {timestamps: true}
+);
 
-  User.prototype.checkPassword = async function (plain) {
-    return bcrypt.compare(plain, this.password);
-  };
+UserSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) return next();
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
+});
 
-  return User;
+UserSchema.methods.checkPassword = function (plain) {
+  return bcrypt.compare(plain, this.password);
 };
+
+export const User = mongoose.models.User || mongoose.model('User', UserSchema);
+export default User;
