@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16.1
+    container_name: smastnx_desafio_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app_user
+      POSTGRES_PASSWORD: app_pass
+      POSTGRES_DB: smastnx_desafio 
+    ports:
+      - "5433:5432"                 
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app_user -d smastnx_desafio"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+
+  # Init container: cria o DB de testes se não existir e finaliza
+  db-init:
+    image: postgres:16.1
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-lc"]
+    command: >
+      '
+      PGPASSWORD=app_pass psql -h db -U app_user -d postgres -tAc
+      "SELECT 1 FROM pg_database WHERE datname = '\''smastnx_desafio_test'\''"
+      | grep -q 1
+      || PGPASSWORD=app_pass psql -h db -U app_user -d postgres -c
+      "CREATE DATABASE smastnx_desafio_test OWNER app_user;"
+      '
+
+volumes:
+  dbdata:
