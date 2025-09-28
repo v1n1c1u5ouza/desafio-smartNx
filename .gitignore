@@ -3,15 +3,18 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
 # Env
 .env
 .env.local
 .env.*.local
 .env.test
+!.env.example
+!.env.test.example
 
 # Logs
-logs
+logs/
 *.log
 *.log.*
 pids
@@ -20,20 +23,27 @@ pids
 *.pid.lock
 
 # Coverage
-coverage
-.nyc_output
+coverage/
+.nyc_output/
+lcov-report/
 
 # Jest cache
 .jest/
 
-# VSCode / IDE
+# ESLint cache
+.eslintcache
+
+# VSCode / IDE / SO
 .vscode/
 .idea/
 *.swp
+.DS_Store
+Thumbs.db
 
-# Docker volumes
+# Docker volumes 
 dbdata/
+mongodata/
 
-# Build
+# Build / dist
 dist/
 build/

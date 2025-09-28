@@ -1,39 +1,108 @@
-SERVICE=db
-COMPOSE=docker compose
+# ------------------------------
+# Carrega o .env e exporta as variáveis
+# ------------------------------
+ifneq (,$(wildcard .env))
+include .env
+export
+endif
 
-# Sobe DB cria DB principal e o de testes via init container
+# Fallbacks caso variáveis não estejam no .env
+DB_NAME            ?= smastnx_desafio
+DB_USER            ?= app_user
+DB_PASS            ?= app_pass
+MONGO_ROOT_USER    ?= root
+MONGO_ROOT_PASS    ?= rootpass
+MONGO_EXPRESS_PORT ?= 8081
+
+# ------------------------------
+# Config
+# ------------------------------
+COMPOSE   := docker compose
+DB_SVC    := smastnx_desafio_db
+MONGO_SVC := smastnx_desafio_mongo
+MEXP_SVC  := smastnx_desafio_mongo_express
+
+# ------------------------------
+# Help (default)
+# ------------------------------
+.PHONY: help
+help:
+	@echo "Comandos úteis:"
+	@echo "  make up           - Sobe todos os serviços (Postgres, init, Mongo, mongo-express)"
+	@echo "  make down         - Para serviços (mantém volumes)"
+	@echo "  make reset        - Para serviços e remove volumes (zera bancos)"
+	@echo "  make ps           - Mostra status dos serviços"
+	@echo "  make logs         - Logs do Postgres"
+	@echo "  make logs-mongo   - Logs do MongoDB"
+	@echo "  make logs-mexp    - Logs do mongo-express"
+	@echo "  make psql         - Abre psql no DB principal ($(DB_NAME))"
+	@echo "  make psql-test    - Abre psql no DB de testes ($(DB_NAME)_test)"
+	@echo "  make testdb       - Garante/cria DB de testes no Postgres (idempotente)"
+	@echo "  make mongosh      - Abre mongosh como root"
+	@echo "  make ui           - Abre UI do mongo-express (localhost:$(MONGO_EXPRESS_PORT))"
+	@echo "  make cfg          - Valida/mostra config efetiva do compose"
+
+# ------------------------------
+# Docker Compose
+# ------------------------------
+.PHONY: up down reset ps cfg
 up:
 	$(COMPOSE) up -d
 
-# Para e remove containers mantém volume/dados
 down:
 	$(COMPOSE) down
 
-# Para e remove zera o banco
 reset:
 	$(COMPOSE) down -v
 
-# Status dos serviços
 ps:
 	$(COMPOSE) ps
 
-# Logs do DB
+cfg:
+	$(COMPOSE) config
+
+# ------------------------------
+# Logs
+# ------------------------------
+.PHONY: logs logs-mongo logs-mexp
 logs:
-	$(COMPOSE) logs -f $(SERVICE)
+	$(COMPOSE) logs -f $(DB_SVC)
 
-# psql dentro do container sem precisar do cliente no host
+logs-mongo:
+	$(COMPOSE) logs -f $(MONGO_SVC)
+
+logs-mexp:
+	$(COMPOSE) logs -f $(MEXP_SVC)
+
+# ------------------------------
+# Postgres: acesso rápido
+# ------------------------------
+.PHONY: psql psql-test testdb
 psql:
-	docker exec -it smastnx_desafio_db psql -U app_user -d smastnx_desafio
+	docker exec -it $(DB_SVC) psql -U $(DB_USER) -d $(DB_NAME)
 
-# psql no DB de testes
 psql-test:
-	docker exec -it smastnx_desafio_db psql -U app_user -d smastnx_desafio_test
+	docker exec -it $(DB_SVC) psql -U $(DB_USER) -d $(DB_NAME)_test
 
-# Garante/cria o DB de teste (idempotente) via comando único
+# Garante/cria o DB de teste 
 testdb:
-	docker exec -it smastnx_desafio_db bash -lc "\
-		PGPASSWORD=app_pass psql -U app_user -d postgres -tAc \
-		\"SELECT 1 FROM pg_database WHERE datname = 'smastnx_desafio_test'\" | grep -q 1 || \
-		PGPASSWORD=app_pass psql -U app_user -d postgres -c \
-		\"CREATE DATABASE smastnx_desafio_test OWNER app_user;\" \
+	docker exec -it $(DB_SVC) bash -lc "\
+		PGPASSWORD=$(DB_PASS) psql -U $(DB_USER) -d postgres -tAc \
+		\"SELECT 1 FROM pg_database WHERE datname = '$(DB_NAME)_test'\" | grep -q 1 || \
+		PGPASSWORD=$(DB_PASS) psql -U $(DB_USER) -d postgres -c \
+		\"CREATE DATABASE $(DB_NAME)_test OWNER $(DB_USER);\" \
 	"
+
+# ------------------------------
+# Mongo: acesso rápido
+# ------------------------------
+.PHONY: mongosh ui
+mongosh:
+	docker exec -it $(MONGO_SVC) mongosh -u $(MONGO_ROOT_USER) -p $(MONGO_ROOT_PASS) --authenticationDatabase admin
+
+ui:
+	@echo "Abrindo http://localhost:$(MONGO_EXPRESS_PORT) ..."
+	@if command -v open >/dev/null 2>&1; then open http://localhost:$(MONGO_EXPRESS_PORT); \
+	elif command -v xdg-open >/dev/null 2>&1; then xdg-open http://localhost:$(MONGO_EXPRESS_PORT); \
+	elif command -v start >/dev/null 2>&1; then start http://localhost:$(MONGO_EXPRESS_PORT); \
+	else echo "Acesse manualmente: http://localhost:$(MONGO_EXPRESS_PORT)"; fi
