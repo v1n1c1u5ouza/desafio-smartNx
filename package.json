@@ -4,7 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "test": "cross-env NODE_ENV=test jest --runInBand --detectOpenHandles",
+    "lint": "eslint .",
+    "test:cov": "npm test -- --coverage"
   },
   "keywords": [],
   "author": "",
@@ -19,6 +23,15 @@
     "sequelize": "^6.37.7"
   },
   "devDependencies": {
+    "@babel/core": "^7.28.4",
+    "@babel/preset-env": "^7.28.3",
+    "@eslint/js": "^9.36.0",
+    "@eslint/json": "^0.13.2",
+    "babel-jest": "^30.2.0",
+    "cross-env": "^10.0.0",
+    "eslint": "^9.36.0",
+    "globals": "^16.4.0",
+    "jest": "^30.1.3",
     "nodemon": "^3.1.10"
   }
 }
