@@ -67,7 +67,7 @@ describe('authController (register/login)', () => {
     expect(fakeUser.checkPassword).toHaveBeenCalledWith('123456');
     expect(jwtSign).toHaveBeenCalled();
     expect(res.json).toHaveBeenCalledWith({
-      token: 'dummy.jwt.token',
+      token: 'Bearer dummy.jwt.token',
       user: { id: '507f1f77bcf86cd799439011', name: 'Vinicius', username: 'vini' },
     });
   });
