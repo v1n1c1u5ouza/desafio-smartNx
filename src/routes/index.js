@@ -1,10 +1,25 @@
 import { Router } from 'express';
+import auth from '../middlewares/auth.js';
 import { register, login } from '../controllers/authController.js';
+import { addComment, deleteComment } from '../controllers/commentController.js';
+import { createPost, listPosts, getPost, updatePost, deletePost } from '../controllers/postController.js';
 
 const routes = Router();
 
-routes.get("/health", (_req, res) => res.json({ status: 'ok' }));
-routes.post("/register", register);
+// Auth
 routes.post("/login", login);
+routes.post("/register", register);
+
+// Posts
+routes.use('/posts', auth)
+routes.get('/posts', listPosts);
+routes.get('/posts/:id', getPost);
+routes.post('/posts', createPost);
+routes.put('/posts/:id', updatePost);
+routes.delete('/posts/:id', deletePost);
+
+// Comments
+routes.post('/posts/:postId/comments', addComment);
+routes.delete('/posts/:postId/comments/:commentId', deleteComment)
 
 export default routes;
