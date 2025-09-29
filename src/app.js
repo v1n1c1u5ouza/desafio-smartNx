@@ -10,7 +10,7 @@ const app = express();
 app.use(express.json());
 app.use(routes);
 
-async function init() {
+export async function init() {
   try {
     await sequelize.authenticate();
     if (process.env.NODE_ENV === 'test') {
@@ -32,7 +32,5 @@ async function init() {
     if (process.env.NODE_ENV !== 'test') process.exit(1);
   }
 }
-
-init();
 
 export default app;
