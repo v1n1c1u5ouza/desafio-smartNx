@@ -13,7 +13,7 @@ export async function register(req, res) {
 
     const user = await User.create({ name, username, password });
     return res.status(201).json({
-      id: String(user._id),         
+      id: String(user._id),
       name: user.name,
       username: user.username
     });
@@ -34,15 +34,18 @@ export async function login(req, res) {
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
 
-    const token = jwt.sign({}, process.env.JWT_SECRET, {
-      subject: String(user._id),   
-      expiresIn: process.env.JWT_EXPIRES || '1h',
-    });
+    const tokenRaw = jwt.sign(
+      { username: user.username },
+      process.env.JWT_SECRET,
+      { subject: String(user._id), expiresIn: process.env.JWT_EXPIRES || '1h' }
+    );
+
+    const token = `Bearer ${tokenRaw}`
 
     return res.json({
       token,
       user: {
-        id: String(user._id),         
+        id: String(user._id),
         name: user.name,
         username: user.username
       }

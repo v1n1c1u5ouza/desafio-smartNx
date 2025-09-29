@@ -17,7 +17,7 @@ export default function auth(req, res, next){
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = { id: decoded.sub};
+      req.user = { id: decoded.sub, username: decoded.username};
       return next();
     } catch (error) {
       console.error('Erro ao validar token:', error.message);
