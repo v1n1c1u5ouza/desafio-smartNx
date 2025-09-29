@@ -25,7 +25,7 @@ function mockRes() {
 const mockReq = (over = {}) => ({
   params: {},
   body: {},
-  user: { id: 'user123', username: 'vini' },
+  user: { id: 'user123', username: 'user1233' },
   ...over,
 });
 
@@ -39,7 +39,7 @@ describe('postController', () => {
     const res = mockRes();
     const fakePost = {
       id: 1, title: 'T1', content: 'C1',
-      authorId: 'user123', authorUsername: 'vini',
+      authorId: 'user123', authorUsername: 'user1233',
       createdAt: 'now', updatedAt: 'now',
     };
     Post.create.mockResolvedValue(fakePost);
@@ -47,12 +47,12 @@ describe('postController', () => {
     await createPost(req, res);
 
     expect(Post.create).toHaveBeenCalledWith({
-      title: 'T1', content: 'C1', authorId: 'user123', authorUsername: 'vini',
+      title: 'T1', content: 'C1', authorId: 'user123', authorUsername: 'user1233',
     });
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith({
       id: 1, title: 'T1', content: 'C1',
-      authorId: 'user123', authorUsername: 'vini',
+      authorId: 'user123', authorUsername: 'user1233',
       createdAt: 'now', updatedAt: 'now',
     });
   });
@@ -89,7 +89,7 @@ describe('postController', () => {
     const req = mockReq({
       params: { id: 1 },
       body: { title: 'Novo' },
-      user: { id: 'user123', username: 'vini' },
+      user: { id: 'user123', username: 'user1233' },
     });
     const res = mockRes();
     const postInstance = {
