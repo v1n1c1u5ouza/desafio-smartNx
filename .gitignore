@@ -1,2 +1,49 @@
+# Node
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env
 .env
+.env.local
+.env.*.local
+.env.test
+!.env.example
+!.env.test.example
+
+# Logs
+logs/
+*.log
+*.log.*
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+coverage/
+.nyc_output/
+lcov-report/
+
+# Jest cache
+.jest/
+
+# ESLint cache
+.eslintcache
+
+# VSCode / IDE / SO
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Docker volumes 
+dbdata/
+mongodata/
+
+# Build / dist
+dist/
+build/
