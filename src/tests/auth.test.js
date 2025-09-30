@@ -10,9 +10,10 @@ jest.mock('jsonwebtoken', () => ({
   sign: jest.fn(() => 'dummy.jwt.token'),
 }));
 
-import { register, login } from '../controllers/authController.js';
 import User from '../models/user.js';
 import { sign as jwtSign } from 'jsonwebtoken';
+import { ERRORS } from '../constants/errors.js';
+import { register, login } from '../controllers/authController.js';
 
 function mockReq(body = {}) { return { body }; }
 function mockRes() {
@@ -87,10 +88,10 @@ describe('authController (register/login)', () => {
     await login(req, res);
 
     expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Credenciais inválidas' });
+    expect(res.json).toHaveBeenCalledWith({ error: ERRORS.AUTH.BAD_CREDENTIALS });
   });
 
-  test('POST /register com username duplicado -> 409', async () => {
+  test('POST /register com username duplicado -> 400', async () => {
     const req = mockReq({ name: 'usuario', username: 'user1233', password: '123456' });
     const res = mockRes();
 
@@ -98,19 +99,19 @@ describe('authController (register/login)', () => {
 
     await register(req, res);
 
-    expect(res.status).toHaveBeenCalledWith(409);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Username já em uso' });
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: ERRORS.AUTH.USERNAME_TAKEN });
   });
 
   test('POST /login faltando campos -> 400', async () => {
     let res = mockRes();
     await login(mockReq({ username: 'user1233' }), res);
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ error: 'username e password são obrigatórios' });
+    expect(res.json).toHaveBeenCalledWith({ error: ERRORS.AUTH.REQUIRED_FIELDS });
 
     res = mockRes();
     await login(mockReq({ password: '123456' }), res);
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ error: 'username e password são obrigatórios' });
+    expect(res.json).toHaveBeenCalledWith({ error: ERRORS.AUTH.REQUIRED_FIELDS });
   });
 });

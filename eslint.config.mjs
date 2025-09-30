@@ -11,7 +11,7 @@ export default defineConfig([
     languageOptions: {
       globals: {
         ...globals.node,
-        ...globals.jest, // 👈 habilita describe, test, jest, expect, etc.
+        ...globals.jest,
       },
     },
   },

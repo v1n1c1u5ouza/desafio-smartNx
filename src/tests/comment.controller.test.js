@@ -13,6 +13,7 @@ import { Post, Comment } from '../models/index.js';
 import {
   addComment, deleteComment, updateComment,
 } from '../controllers/commentController.js';
+import { ERRORS } from '../constants/errors.js';
 
 function mockRes() {
   const res = {};
@@ -128,7 +129,7 @@ describe('commentController', () => {
     await updateComment(req, res);
 
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Nada para atualizar' });
+    expect(res.json).toHaveBeenCalledWith({ error: ERRORS.COMMENTS.NOTHING_TO_UPDATE });
   });
 
   test('updateComment -> 200 quando ok', async () => {

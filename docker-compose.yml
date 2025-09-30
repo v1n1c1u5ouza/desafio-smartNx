@@ -1,6 +1,58 @@
-version: "3.9"
-
 services:
+  # ====== API (dev) ======
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: smartnx_api_dev
+    env_file:
+      - .env
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+    depends_on:
+      db:
+        condition: service_healthy
+      mongo:
+        condition: service_started
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    healthcheck:
+      test: ["CMD-SHELL", "apk add --no-cache curl >/dev/null 2>&1 || true; curl -fsS http://localhost:3000/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    profiles: ["dev"]
+
+  # ====== API (prod) ======
+  api-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smartnx_api_prod
+    env_file:
+      - .env
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT:  ${DB_PORT}
+    depends_on:
+      db:
+        condition: service_healthy
+      mongo:
+        condition: service_started
+    ports:
+      - "${PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "apk add --no-cache curl >/dev/null 2>&1 || true; curl -fsS http://localhost:3000/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    profiles: ["prod"]
+
+  # ====== Postgres ======
   db:
     image: postgres:16.1
     container_name: smastnx_desafio_db
@@ -19,7 +71,7 @@ services:
     volumes:
       - dbdata:/var/lib/postgresql/data
 
-  # Init container: cria o DB de testes se não existir
+  # cria DB de teste (idempotente)
   db-init:
     image: postgres:16.1
     depends_on:
@@ -34,7 +86,9 @@ services:
       || PGPASSWORD=${DB_PASS} psql -h db -U ${DB_USER} -d postgres -c
       "CREATE DATABASE ${DB_NAME}_test OWNER ${DB_USER};"
       '
+    profiles: ["dev","prod"]
 
+  # ====== Mongo ======
   mongo:
     image: mongo:8
     container_name: smastnx_desafio_mongo
@@ -47,6 +101,7 @@ services:
     volumes:
       - mongodata:/data/db
 
+  # UI do Mongo (apenas em dev)
   mongo-express:
     image: mongo-express:1.0.2-20-alpine3.19
     container_name: smastnx_desafio_mongo_express
@@ -59,6 +114,7 @@ services:
       ME_CONFIG_MONGODB_URL: mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASS}@mongo:27017/?authSource=admin
     ports:
       - "${MONGO_EXPRESS_PORT:-8081}:8081"
+    profiles: ["dev"]
 
 volumes:
   dbdata:

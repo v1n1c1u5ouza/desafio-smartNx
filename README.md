@@ -2,51 +2,120 @@
 
 ---
 
-## 🚀 Status atual
+## Status atual
 
-✅ Auth (register/login) com JWT armazenado no MongoDB
-✅ CRUD de Posts e Comentários no PostgreSQL, com JWT obrigatório em todas as rotas (GET/POST/PUT/DELETE)
-✅ Token de login já retorna `Bearer <jwt>` e payload inclui `username`
-✅ Banco PostgreSQL + MongoDB + Mongo Express via Docker Compose (config via `.env`)
-✅ Makefile com atalhos (subir/parar/resetar, psql, mongosh, logs)
-✅ Testes unitários (auth, posts, comments) e teste de integração para rotas protegidas
-✅ ESLint configurado para Node + Jest
+* ✅ Auth (register/login) com JWT armazenado no MongoDB
+* ✅ CRUD de Posts e Comentários no PostgreSQL, com JWT obrigatório em todas as rotas (GET/POST/PUT/DELETE)
+* ✅ Token de login já retorna `Bearer <jwt>` e payload inclui `username`
+* ✅ Banco PostgreSQL + MongoDB + Mongo Express via Docker Compose (config via `.env`)
+* ✅ Makefile com atalhos (subir/parar/resetar, psql, mongosh, logs)
+* ✅ Testes unitários (auth, posts, comments) e teste de integração para rotas protegidas
+* ✅ ESLint configurado para Node + Jest
 
 ---
 
-## ⚙️ Requisitos
+# Parte 1 – Explicação (por quê)
+
+### Arquitetura (MVC)
+
+O projeto segue o padrão **Model-View-Controller**:
+
+* **Models**: representam as entidades da aplicação e se comunicam diretamente com os bancos de dados
+  (MongoDB para usuários e PostgreSQL para posts/comentários).
+* **Controllers**: centralizam a lógica de negócio e tratam requisições/respostas HTTP.
+* **Routes**: organizam os endpoints e redirecionam para os controllers.
+
+**Por que MVC?**
+
+* Separar responsabilidades e manter o código organizado.
+* Facilitar manutenção e escalabilidade.
+* Isolar regras de negócio da lógica de acesso a dados.
+
+---
+
+### Por que essas bibliotecas?
+
+* **express** → framework minimalista para rotas e middlewares de API.
+* **sequelize + pg/pg-hstore** → ORM para mapear entidades no PostgreSQL (Posts/Comments).
+* **mongoose** → ODM para persistir usuários no MongoDB.
+* **jsonwebtoken** → geração/validação de tokens JWT (segurança).
+* **bcrypt** → hashing de senhas (não armazenar em plan text).
+* **dotenv** → carregamento seguro de variáveis de ambiente.
+
+---
+
+### Variáveis de ambiente
+
+As variáveis no `.env` permitem configurar a aplicação sem alterar o código.
+
+* **JWT_SECRET** → chave usada para assinar/verificar tokens JWT.
+* **DB_HOST, DB_USER, DB_PASS, DB_NAME** → conexão com PostgreSQL.
+* **MONGO_URI, MONGO_DB, MONGO_ROOT_USER, MONGO_ROOT_PASS** → conexão/autenticação MongoDB.
+* **PORT** → porta da API.
+
+Isso permite rodar em **dev** e **prod** sem mudar código-fonte, apenas alterando o `.env`.
+
+---
+
+### Dockerização
+
+O repositório contém um `docker-compose.yml` que provisiona toda a infraestrutura:
+
+* **PostgreSQL** → persistência de Posts e Comentários.
+* **MongoDB** → persistência de Usuários.
+* **Mongo Express** → interface web para o Mongo.
+* **API** → aplicação Node.js com perfis:
+
+  * **Dev** → `docker compose --profile dev up -d` (nodemon, hot-reload).
+  * **Prod** → `docker compose --profile prod up -d` (somente deps de produção).
+
+---
+
+### Endpoints – funcionamento
+
+**Autenticação (MongoDB)**
+
+* `POST /register` → cria usuário com senha hasheada.
+* `POST /login` → autentica credenciais e retorna JWT (Bearer).
+* JWT é obrigatório em todas as rotas de posts/comments.
+
+**Posts (PostgreSQL)**
+
+* `POST /posts` → cria post vinculado ao `authorId` e `authorUsername`.
+* `GET /posts` → lista todos os posts.
+* `GET /posts/:id` → retorna post específico.
+* `PUT /posts/:id` → atualiza post (somente autor pode editar).
+* `DELETE /posts/:id` → deleta post (somente autor). Comentários ligados ao post são removidos em cascade.
+
+**Comments (PostgreSQL)**
+
+* `POST /posts/:postId/comments` → adiciona comentário a um post.
+* `PUT /posts/:postId/comments/:commentId` → edita comentário (somente autor).
+* `DELETE /posts/:postId/comments/:commentId` → remove comentário (somente autor).
+* Erros:
+
+  * `404` → recurso não encontrado
+  * `403` → não é o autor
+  * `400` → nada para atualizar
+
+---
+
+# Parte 2 – Guia prático (como usar)
+
+### Requisitos
 
 * Node.js 22+
 * Docker + Docker Compose
 * (Opcional) Make (para atalhos como `make up`, `make down`)
 
-### Dependências principais
-* bcrypt  
-* dotenv  
-* express  
-* jsonwebtoken  
-* mongoose  
-* pg  
-* pg-hstore  
-* sequelize  
-
-### Dependências de desenvolvimento
-* @babel/core  
-* @babel/preset-env  
-* @eslint/js  
-* @eslint/json  
-* babel-jest  
-* cross-env  
-* eslint  
-* globals  
-* jest  
-* nodemon
+Dependências principais: `bcrypt`, `dotenv`, `express`, `jsonwebtoken`, `mongoose`, `pg`, `pg-hstore`, `sequelize`
+Dependências de dev: `jest`, `babel-jest`, `eslint`, `nodemon`, etc.
 
 ---
 
-## 🧪 Variáveis de ambiente
+### Variáveis de ambiente
 
-Crie um arquivo **`.env`** na raiz (ou copie de `.env.example`) e preencha:
+Crie `.env` com:
 
 ```env
 # App
@@ -55,7 +124,7 @@ JWT_SECRET=your_jwt_secret_here
 JWT_EXPIRES=1h
 
 # Postgres
-DB_HOST=localhost
+DB_HOST=db
 DB_PORT=5433
 DB_NAME=your_postgres_db_name
 DB_USER=your_postgres_user
@@ -65,7 +134,7 @@ DB_PASS=your_postgres_password
 MONGO_URI=mongodb://your_mongo_user:your_mongo_pass@localhost:27017/?authSource=admin
 MONGO_DB=your_mongo_db_name
 
-# Compose (Mongo root user)
+# Compose root user/pass
 MONGO_ROOT_USER=your_mongo_user
 MONGO_ROOT_PASS=your_mongo_pass
 
@@ -76,64 +145,35 @@ MONGO_EXPRESS_PORT=8081
 
 ---
 
-## 🐳 Subir infraestrutura (Docker)
-
-O repositório contém um `docker-compose.yml` que utiliza as variáveis do `.env` com:
-
-* PostgreSQL: 
-  * ports: `${DB_PORT}`
-  * POSTGRES_USER: `${DB_USER}`
-  * POSTGRES_PASSWORD: `${DB_PASS}`
-  * POSTGRES_DB: `${DB_NAME}`
-* MongoDB: 
-  * ports: `${MONGO_PORT}`
-  * MONGO_INITDB_ROOT_USERNAME:` ${MONGO_ROOT_USER}`
-  * MONGO_INITDB_ROOT_PASSWORD: `${MONGO_ROOT_PASS}`
-* Mongo Express 
-  * posts: `${MONGO_EXPRESS_PORT}`
-  * ME_CONFIG_MONGODB_ADMINUSERNAME: `${MONGO_ROOT_USER}`
-  * ME_CONFIG_MONGODB_ADMINPASSWORD: `${MONGO_ROOT_PASS}`
-  * ME_CONFIG_MONGODB_URL: mongodb://`${MONGO_ROOT_USER}`:`${MONGO_ROOT_PASS}`@mongo:27017/?authSource=admin
-
-### Com Docker Compose
+### Subir infraestrutura
 
 ```bash
-docker compose up -d
-docker compose ps
+docker compose --profile dev up -d   # ambiente dev
+docker compose --profile prod up -d  # ambiente prod
 ```
 
-### Com Makefile (atalhos)
+Com Makefile:
 
 ```bash
-  make up           - Sobe todos os serviços (Postgres, init, Mongo, mongo-express)
-  make down         - Para serviços (mantém volumes)
-  make reset        - Para serviços e remove volumes (zera bancos)
-  make ps           - Mostra status dos serviços
-  make logs         - Logs do Postgres
-  make logs-mongo   - Logs do MongoDB
-  make logs-mexp    - Logs do mongo-express
-  make psql         - Abre psql no DB principal ($(DB_NAME))
-  make psql-test    - Abre psql no DB de testes ($(DB_NAME)_test)
-  make testdb       - Garante/cria DB de testes no Postgres (idempotente)
-  make mongosh      - Abre mongosh como root
-  make ui           - Abre UI do mongo-express (localhost:$(MONGO_EXPRESS_PORT))
-  make cfg          - Valida/mostra config efetiva do compose
+make up-dev
+make up-prod
+make ps
+make logs
+make psql
+make mongosh
 ```
-
-ℹ️ Se você já possui Postgres local na `5432`, o compose expõe o container na `${DB_PORT}` para evitar conflito.
 
 ---
 
-## ▶️ Rodando a API (dev)
-
-Instale dependências e suba a API:
+### Rodar a API
 
 ```bash
 npm install
 npm run dev
 ```
+---
 
-## 🔐 Autenticação (MongoDB)
+## Autenticação (MongoDB)
 
 Todas as respostas e exemplos abaixo usam um usuário genérico (`usuario` / `user`). O token já vem prefixado com **Bearer**.
 
@@ -167,7 +207,7 @@ curl -X POST http://localhost:3000/register \
 **Erros comuns**
 
 * `400` → campos obrigatórios ausentes
-* `409` → username já em uso
+* `400` → username já em uso
 
 ---
 
@@ -215,7 +255,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
 
 ---
 
-## 📚 CRUD de Posts (PostgreSQL)
+## CRUD de Posts (PostgreSQL)
 
 Todas as rotas abaixo exigem JWT. Cada post guarda `authorId` (id do Mongo) e `authorUsername`.
 
@@ -363,7 +403,7 @@ curl -X DELETE http://localhost:3000/posts/1 \
 
 ---
 
-## 💬 Comentários (PostgreSQL)
+## Comentários (PostgreSQL)
 
 Também exigem JWT e respeitam autoria.
 
@@ -455,28 +495,49 @@ curl -X DELETE http://localhost:3000/posts/1/comments/10 \
 
 ---
 
-## 🧑‍🔧 Testes
+## Testes
 
-Os testes são:
+Os testes estão divididos em:
 
 * **Unitários** (Jest) → mock dos models, não dependem de banco real.
-* **Integração** → valida rotas protegidas com JWT.
+* **Integração** → validam rotas protegidas com JWT.
+* **Conexão real de DB** → validam que Postgres e Mongo estão acessíveis via Sequelize/Mongoose.
 
-### Rodar testes
+---
+
+### Rodando os testes
+
+#### Opção A – Dentro do container da API (recomendado)
+
+Assim você não precisa alterar o `.env`:
+
+```bash
+docker compose --profile dev up -d --build
+docker exec -it smartnx_api_dev npm test
+```
+
+No `.env`, deixe:
+
+```env
+DB_HOST=db
+DB_PORT=5432
+MONGO_URI=mongodb://<user>:<pass>@mongo:27017/?authSource=admin
+```
+
+#### Opção B – No host (máquina local)
+
+Aqui você usa as portas expostas no `docker-compose.yml`:
+
+```env
+DB_HOST=localhost
+DB_PORT=5435
+MONGO_URI=mongodb://<user>:<pass>@localhost:27017/?authSource=admin
+```
+
+Depois é só rodar:
 
 ```bash
 npm test
 ```
 
-### Cobertura
-
-```bash
-npm run test:cov
-```
-
-**Tecnologias de teste**: Jest
-**Arquivos relevantes**:
-
-* `jest.config.cjs`
-* `babel.config.cjs`
-* `src/tests/**`
+---

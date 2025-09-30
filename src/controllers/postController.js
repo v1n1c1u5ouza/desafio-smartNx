@@ -1,10 +1,12 @@
-import { Post, Comment } from '../models/index.js';
 import pick from '../utils/pick.js';
+import { ERRORS } from '../constants/errors.js';
+import { Post, Comment } from '../models/index.js';
+import { ok, created, noContent, badRequest, forbidden, notFound, internal } from '../utils/https.js';
 
 export async function createPost(req, res) {
   try {
     const { title, content } = req.body;
-    if (!title || !content) return res.status(400).json({ error: 'title e content são obrigatórios' });
+    if (!title || !content) return badRequest(res, ERRORS.POSTS.REQUIRED_FIELDS);
 
     const post = await Post.create({
       title,
@@ -13,18 +15,10 @@ export async function createPost(req, res) {
       authorUsername: req.user.username,
     });
 
-    return res.status(201).json({
-      id: post.id,
-      title: post.title,
-      content: post.content,
-      authorId: post.authorId,
-      authorUsername: post.authorUsername,
-      createdAt: post.createdAt,
-      updatedAt: post.updatedAt,
-    });
+    return created(res, post)
 
   } catch (e) {
-    return res.status(500).json({ error: 'Erro ao criar post', details: e.message });
+    return internal(res, e, 'Erro ao criar post');
   }
 }
 
@@ -35,10 +29,10 @@ export async function listPosts(_req, res) {
       include: [{ model: Comment, as: 'comments' }],
     });
 
-    return res.json(posts);
+    return ok(res, posts);
 
   } catch (e) {
-    return res.status(500).json({ error: 'Erro ao listar posts', details: e.message });
+    return internal(res, e, 'Erro ao listar posts');
   }
 }
 
@@ -47,49 +41,54 @@ export async function getPost(req, res) {
     const post = await Post.findByPk(req.params.id, {
       include: [{ model: Comment, as: 'comments' }],
     });
-    if (!post) return res.status(404).json({ error: 'Post não encontrado' });
     
-    return res.json(post);
+    if (!post) return notFound(res, ERRORS.POSTS.NOT_FOUND);
+
+    return ok(res, post);
 
   } catch (e) {
-    return res.status(500).json({ error: 'Erro ao buscar post', details: e.message });
+    return internal(res, e, 'Erro ao buscar post');
   }
 }
 
 export async function updatePost(req, res) {
   try {
     const post = await Post.findByPk(req.params.id);
-    if (!post) return res.status(404).json({ error: 'Post não encontrado' });
+
+    if (!post) return notFound(res, ERRORS.POSTS.NOT_FOUND);
+
     if (post.authorId !== String(req.user.id)) {
-      return res.status(403).json({ error: 'Você não é o autor deste post' });
+      return forbidden(res, ERRORS.POSTS.FORBIDDEN_AUTHOR);
     }
 
     const updates = pick(req.body, ['title', 'content']);
-    
+
     if (Object.keys(updates).length === 0) {
-      return res.status(400).json({ error: 'Nada para atualizar' });
+      return badRequest(res, ERRORS.POSTS.NOTHING_TO_UPDATE);
     }
 
     await post.update(updates);
-    return res.json(post);
+    return ok(res, post);
 
   } catch (e) {
-    return res.status(500).json({ error: 'Erro ao atualizar post', details: e.message });
+    return internal(res, e, 'Erro ao atualizar post');
   }
 }
 
 export async function deletePost(req, res) {
   try {
     const post = await Post.findByPk(req.params.id);
-    if (!post) return res.status(404).json({ error: 'Post não encontrado' });
+
+    if (!post) return notFound(res, ERRORS.POSTS.NOT_FOUND);
+
     if (post.authorId !== String(req.user.id)) {
-      return res.status(403).json({ error: 'Você não é o autor deste post' });
+      return forbidden(res, ERRORS.POSTS.FORBIDDEN_AUTHOR);
     }
 
     await post.destroy();
-    return res.status(204).send();
+    return noContent(res);
 
   } catch (e) {
-    return res.status(500).json({ error: 'Erro ao deletar post', details: e.message });
+    return internal(res, e, 'Erro ao deletar post');
   }
 }
