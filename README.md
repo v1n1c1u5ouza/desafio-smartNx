@@ -171,13 +171,6 @@ make mongosh
 npm install
 npm run dev
 ```
-
-Health check:
-
-```http
-GET http://localhost:3000/health
-```
-
 ---
 
 ## Autenticação (MongoDB)
@@ -557,4 +550,5 @@ Como conexões de banco podem demorar a estabilizar, o Jest foi configurado para
 // jest.config.cjs
 module.ex
 ```
+
 ---
