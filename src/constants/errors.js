@@ -17,7 +17,7 @@ export const ERRORS = {
   },
   COMMENTS: {
     POST_NOT_FOUND: 'Post não encontrado',
-    REQUIRED_FIELDS: 'content é obrigatórios',
+    REQUIRED_FIELDS: 'content é obrigatório',
     NOT_FOUND: 'Comentário não encontrado',
     FORBIDDEN_AUTHOR: 'Você não é o autor deste comentário',
     NOTHING_TO_UPDATE: 'Nada para atualizar',

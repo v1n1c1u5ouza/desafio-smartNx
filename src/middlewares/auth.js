@@ -1,28 +1,24 @@
 import jwt from 'jsonwebtoken';
 import { ERRORS } from '../constants/errors.js';
 import { unauthorized } from '../utils/https.js';
+import { assert, HttpError } from '../utils/guards.js';
 
-export default function auth(req, res, next){
-  const authorizationHeader = req.headers.authorization;
-    if (!authorizationHeader) return unauthorized(res, ERRORS.AUTH.MISSING_TOKEN);
+export default function auth(req, res, next) {
+  try {
+    const hdr = req.headers.authorization;
+    assert(hdr, 401, ERRORS.AUTH.MISSING_TOKEN);
 
-    const parts = authorizationHeader.split(' ')
+    const [schema, token] = String(hdr).split(' ');
+    assert(schema === 'Bearer' && token, 401, ERRORS.AUTH.INVALID_FORMAT);
 
-    if (parts.length !== 2) {
-      return unauthorized(res, ERRORS.AUTH.INVALID_FORMAT);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = { id: decoded.sub, username: decoded.username };
+
+    return next();
+  } catch (err) {
+    if (err instanceof HttpError) {
+      return unauthorized(res, err.message);
     }
-
-    const [schema, token] = parts;
-    if (schema !== 'Bearer') {
-      return unauthorized(res, ERRORS.AUTH.INVALID_SCHEMA);
-    }
-
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = { id: decoded.sub, username: decoded.username};
-      return next();
-    } catch (error) {
-      console.error('Erro ao validar token:', error.message);
-      return unauthorized(res, ERRORS.AUTH.INVALID_TOKEN);
-    }
+    return unauthorized(res, ERRORS.AUTH.INVALID_TOKEN);
   }
+}

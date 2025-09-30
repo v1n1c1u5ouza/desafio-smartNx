@@ -32,6 +32,9 @@ export function notFound(res, message) {
   return res.status(404).json({ error: message });
 }
 
+export function conflict(res, message) {
+  return res.status(409).json({ error: message });
+}
 
 export function internal(res, error, fallbackMsg = 'Ocorreu um erro interno') {
   return res.status(500).json({ error: fallbackMsg, details: error?.message });
