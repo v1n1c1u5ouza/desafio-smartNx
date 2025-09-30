@@ -1,8 +1,3 @@
-# ==============================
-# NÃO carregue .env via make!
-# Deixe o docker compose ler .env com --env-file .env
-# ==============================
-
 # Fallbacks (caso o .env não esteja presente)
 DB_NAME            ?= smastnx_desafio
 DB_USER            ?= app_user
