@@ -1,24 +1,27 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/user.js';
+import { ERRORS } from '../constants/errors.js';
+import { created, ok, badRequest, unauthorized, internal } from '../utils/https.js';
 
 export async function register(req, res) {
   try {
     const { name, username, password } = req.body;
     if (!name || !username || !password) {
-      return res.status(400).json({ error: 'name, username e password são obrigatórios' });
+      return badRequest(res, ERRORS.AUTH.NAME_USER_PASS_REQUIRED);
     }
 
     const exists = await User.findOne({ username });
-    if (exists) return res.status(409).json({ error: 'Username já em uso' });
+    if (exists) return badRequest(res, ERRORS.AUTH.USERNAME_TAKEN);
 
     const user = await User.create({ name, username, password });
-    return res.status(201).json({
+    return created(res, {
       id: String(user._id),
       name: user.name,
       username: user.username
     });
+
   } catch (error) {
-    return res.status(500).json({ error: 'Erro ao registrar', details: error.message });
+    return internal(res, error, 'Erro ao registrar');
   }
 }
 
@@ -26,31 +29,26 @@ export async function login(req, res) {
   try {
     const { username, password } = req.body;
     if (!username || !password) {
-      return res.status(400).json({ error: 'username e password são obrigatórios' });
+      return badRequest(res, ERRORS.AUTH.REQUIRED_FIELDS);
     }
 
     const user = await User.findOne({ username });
     if (!user || !(await user.checkPassword(password))) {
-      return res.status(401).json({ error: 'Credenciais inválidas' });
+      return unauthorized(res, ERRORS.AUTH.BAD_CREDENTIALS);
     }
 
-    const tokenRaw = jwt.sign(
+    const token = jwt.sign(
       { username: user.username },
       process.env.JWT_SECRET,
-      { subject: String(user._id), expiresIn: process.env.JWT_EXPIRES || '1h' }
+      { subject: String(user._id), expiresIn: process.env.JWT_EXPIRES }
     );
 
-    const token = `Bearer ${tokenRaw}`
-
-    return res.json({
-      token,
-      user: {
-        id: String(user._id),
-        name: user.name,
-        username: user.username
-      }
+    return ok(res, {
+      token: `Bearer ${token}`,
+      user: { id: String(user._id), name: user.name, username: user.username },
     });
+    
   } catch (error) {
-    res.status(500).json({ error: 'Erro ao autenticar', details: error.message });
+    return internal(res, error, 'Erro ao autenticar');
   }
 }

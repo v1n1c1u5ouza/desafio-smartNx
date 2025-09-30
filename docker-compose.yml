@@ -7,6 +7,9 @@ services:
     container_name: smartnx_api_dev
     env_file:
       - .env
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
     depends_on:
       db:
         condition: service_healthy
@@ -32,6 +35,9 @@ services:
     container_name: smartnx_api_prod
     env_file:
       - .env
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT:  ${DB_PORT}
     depends_on:
       db:
         condition: service_healthy

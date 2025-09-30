@@ -1,18 +1,20 @@
-import jwt from 'jsonwebtoken'
+import jwt from 'jsonwebtoken';
+import { ERRORS } from '../constants/errors.js';
+import { unauthorized } from '../utils/https.js';
 
 export default function auth(req, res, next){
   const authorizationHeader = req.headers.authorization;
-    if (!authorizationHeader) return res.status(401).json({ error: 'Token não fonecido'});
+    if (!authorizationHeader) return unauthorized(res, ERRORS.AUTH.MISSING_TOKEN);
 
     const parts = authorizationHeader.split(' ')
 
     if (parts.length !== 2) {
-      return res.status(401).json({ error: 'Formato do token inválido (Bearer <token>)' });
+      return unauthorized(res, ERRORS.AUTH.INVALID_FORMAT);
     }
 
     const [schema, token] = parts;
     if (schema !== 'Bearer') {
-      return res.status(401).json({ error: 'Formato do token inválido (Esquema deve ser Bearer)' });
+      return unauthorized(res, ERRORS.AUTH.INVALID_SCHEMA);
     }
 
     try {
@@ -21,6 +23,6 @@ export default function auth(req, res, next){
       return next();
     } catch (error) {
       console.error('Erro ao validar token:', error.message);
-      return res.status(401).json({ error: 'Token inválido ou expirado'});
+      return unauthorized(res, ERRORS.AUTH.INVALID_TOKEN);
     }
   }
