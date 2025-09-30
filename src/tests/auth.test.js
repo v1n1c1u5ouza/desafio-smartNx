@@ -91,7 +91,7 @@ describe('authController (register/login)', () => {
     expect(res.json).toHaveBeenCalledWith({ error: ERRORS.AUTH.BAD_CREDENTIALS });
   });
 
-  test('POST /register com username duplicado -> 400', async () => {
+  test('POST /register com username duplicado -> 409', async () => {
     const req = mockReq({ name: 'usuario', username: 'user1233', password: '123456' });
     const res = mockRes();
 
@@ -99,7 +99,7 @@ describe('authController (register/login)', () => {
 
     await register(req, res);
 
-    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.status).toHaveBeenCalledWith(409);
     expect(res.json).toHaveBeenCalledWith({ error: ERRORS.AUTH.USERNAME_TAKEN });
   });
 
@@ -107,11 +107,11 @@ describe('authController (register/login)', () => {
     let res = mockRes();
     await login(mockReq({ username: 'user1233' }), res);
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ error: ERRORS.AUTH.REQUIRED_FIELDS });
+    expect(res.json).toHaveBeenCalledWith({ error: "Campo obrigatório ausente: password" });
 
     res = mockRes();
     await login(mockReq({ password: '123456' }), res);
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ error: ERRORS.AUTH.REQUIRED_FIELDS });
+    expect(res.json).toHaveBeenCalledWith({ error: "Campo obrigatório ausente: username" });
   });
 });
