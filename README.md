@@ -4,13 +4,13 @@
 
 ## Status atual
 
-* Auth (register/login) com JWT armazenado no MongoDB
-* CRUD de Posts e Comentários no PostgreSQL, com JWT obrigatório em todas as rotas (GET/POST/PUT/DELETE)
-* Token de login já retorna `Bearer <jwt>` e payload inclui `username`
-* Banco PostgreSQL + MongoDB + Mongo Express via Docker Compose (config via `.env`)
-* Makefile com atalhos (subir/parar/resetar, psql, mongosh, logs)
-* Testes unitários (auth, posts, comments) e teste de integração para rotas protegidas
-* ESLint configurado para Node + Jest
+* ✅ Auth (register/login) com JWT armazenado no MongoDB
+* ✅ CRUD de Posts e Comentários no PostgreSQL, com JWT obrigatório em todas as rotas (GET/POST/PUT/DELETE)
+* ✅ Token de login já retorna `Bearer <jwt>` e payload inclui `username`
+* ✅ Banco PostgreSQL + MongoDB + Mongo Express via Docker Compose (config via `.env`)
+* ✅ Makefile com atalhos (subir/parar/resetar, psql, mongosh, logs)
+* ✅ Testes unitários (auth, posts, comments) e teste de integração para rotas protegidas
+* ✅ ESLint configurado para Node + Jest
 
 ---
 
@@ -39,7 +39,7 @@ O projeto segue o padrão **Model-View-Controller**:
 * **sequelize + pg/pg-hstore** → ORM para mapear entidades no PostgreSQL (Posts/Comments).
 * **mongoose** → ODM para persistir usuários no MongoDB.
 * **jsonwebtoken** → geração/validação de tokens JWT (segurança).
-* **bcrypt** → hashing de senhas (não armazenar texto plano).
+* **bcrypt** → hashing de senhas (não armazenar em plan text).
 * **dotenv** → carregamento seguro de variáveis de ambiente.
 
 ---
@@ -155,7 +155,8 @@ docker compose --profile prod up -d  # ambiente prod
 Com Makefile:
 
 ```bash
-make up
+make up-dev
+make up-prod
 make ps
 make logs
 make psql
@@ -213,7 +214,7 @@ curl -X POST http://localhost:3000/register \
 **Erros comuns**
 
 * `400` → campos obrigatórios ausentes
-* `409` → username já em uso
+* `400` → username já em uso
 
 ---
 
@@ -501,21 +502,59 @@ curl -X DELETE http://localhost:3000/posts/1/comments/10 \
 
 ---
 
-### Testes
+## Testes
 
-Rodar:
+Os testes estão divididos em:
+
+* **Unitários** (Jest) → mock dos models, não dependem de banco real.
+* **Integração** → validam rotas protegidas com JWT.
+* **Conexão real de DB** → validam que Postgres e Mongo estão acessíveis via Sequelize/Mongoose.
+
+---
+
+### Rodando os testes
+
+#### Opção A – Dentro do container da API (recomendado)
+
+Assim você não precisa alterar o `.env`:
+
+```bash
+docker compose --profile dev up -d --build
+docker exec -it smartnx_api_dev npm test
+```
+
+No `.env`, deixe:
+
+```env
+DB_HOST=db
+DB_PORT=5432
+MONGO_URI=mongodb://<user>:<pass>@mongo:27017/?authSource=admin
+```
+
+#### Opção B – No host (máquina local)
+
+Aqui você usa as portas expostas no `docker-compose.yml`:
+
+```env
+DB_HOST=localhost
+DB_PORT=5435
+MONGO_URI=mongodb://<user>:<pass>@localhost:27017/?authSource=admin
+```
+
+Depois é só rodar:
 
 ```bash
 npm test
 ```
 
-Cobertura:
+---
 
-```bash
-npm run test:cov
+### Timeout dos testes
+
+Como conexões de banco podem demorar a estabilizar, o Jest foi configurado para esperar até **30s**:
+
+```js
+// jest.config.cjs
+module.ex
 ```
-
-* Unitários → mock dos models.
-* Integração → valida rotas protegidas.
-
 ---
