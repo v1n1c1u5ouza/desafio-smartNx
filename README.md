@@ -541,14 +541,3 @@ npm test
 ```
 
 ---
-
-### Timeout dos testes
-
-Como conexões de banco podem demorar a estabilizar, o Jest foi configurado para esperar até **30s**:
-
-```js
-// jest.config.cjs
-module.ex
-```
-
----
